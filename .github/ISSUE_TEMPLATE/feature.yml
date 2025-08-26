@@ -1,0 +1,22 @@
+name: "Feature Request"
+description: "Yeni özellik geliştirmesi için issue"
+title: "[Feature] - <Başlık>"
+labels: ["feature"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Özet
+      placeholder: Kısaca bu issue ne yapacak?
+  - type: textarea
+    id: details
+    attributes:
+      label: Detaylar
+      placeholder: Ne yapılacak, hangi dosyalar, hangi senaryo?
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - Phase 0 — Foundation
+        - Phase 1 — Core User & Trust
