@@ -1,8 +1,8 @@
-version: "3.8"
+version: "3.9"
 services:
   postgres:
     image: postgres:15
-    container_name: authix_db
+    container_name: authix_postgres
     restart: always
     environment:
       POSTGRES_USER: authix
