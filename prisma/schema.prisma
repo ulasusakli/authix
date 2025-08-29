@@ -8,34 +8,61 @@ generator client {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password      String
-  username      String   @unique
-  fullName      String?
-  avatarUrl     String?
-  role          Role     @default(USER)
-  level         Int      @default(0)
-  isActive      Boolean  @default(true)
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String?  // Nullable, sadece LEVEL2 için
+  name       String?
+  avatar     String?
+  username   String   @unique
+  level      Int      @default(0) // 0,1,2
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  sessions      Session[]
+  sessions             Session[]
+  otpTokens            OtpToken[]
+  passwordResetTokens  PasswordResetToken[]
 }
 
 model Session {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshToken String
+  refreshToken String   @unique
   userAgent    String?
   ipAddress    String?
   createdAt    DateTime @default(now())
   expiresAt    DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
-enum Role {
-  ADMIN
-  USER
+model OtpToken {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([used])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([used])
 }
