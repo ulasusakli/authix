@@ -1,34 +1,77 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { cookieNames } from "@/lib/cookies";
 
-// Authentication routes (public, login flow)
-const AUTH_ROUTES = ["/auth/email", "/auth/otp"];
+const ACCESS_COOKIES = ["__Host-authix-at", "authix-at"];
 
-// Protected routes (require access token)
-const PROTECTED_ROUTES = ["/dashboard", "/settings", "/onboarding"];
+function getAccessToken(req: NextRequest) {
+  for (const name of ACCESS_COOKIES) {
+    const v = req.cookies.get(name)?.value;
+    if (v) return v;
+  }
+  return "";
+}
 
-function hasAccessCookie(req: NextRequest): boolean {
-  // Hem dev hem prod cookie isimlerini kontrol et
-  const candidates = [cookieNames.access, "authix-at", "__Host-authix-at"];
-  return candidates.some((name) => Boolean(req.cookies.get(name)?.value));
+function parseJwtLevel(token: string): number | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const base = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padLen = (4 - (base.length % 4)) % 4;
+    const basePadded = base + "=".repeat(padLen);
+    const json = typeof atob !== "undefined"
+      ? atob(basePadded)
+      : Buffer.from(basePadded, "base64").toString("utf-8");
+    const obj = JSON.parse(json);
+    return typeof obj?.level === "number" ? obj.level : null;
+  } catch {
+    return null;
+  }
 }
 
 export function middleware(req: NextRequest) {
-  const accessPresent = hasAccessCookie(req);
   const url = req.nextUrl.clone();
+  const path = url.pathname;
 
-  const isAuthRoute = AUTH_ROUTES.some((route) => url.pathname.startsWith(route));
-  const isProtected = PROTECTED_ROUTES.some((route) => url.pathname.startsWith(route));
+  const at = getAccessToken(req);
+  const hasAccess = !!at;
+  const level = hasAccess ? parseJwtLevel(at) : null;
 
-  // Korumalı route ama access yok → login sayfasına yönlendir
-  if (!accessPresent && isProtected) {
+  const isAuth = path.startsWith("/auth");
+  const isProfile = path.startsWith("/onboarding/profile");
+  const isPassword = path.startsWith("/onboarding/password");
+  const isProtected =
+    path.startsWith("/dashboard") ||
+    path.startsWith("/settings") ||
+    path.startsWith("/onboarding");
+
+  // Korunan rotalara access yoksa → /auth/email
+  if (!hasAccess && isProtected) {
     url.pathname = "/auth/email";
     return NextResponse.redirect(url);
   }
 
-  // Access varken tekrar /auth/... sayfalarına gitmeye çalışıyorsa → dashboard’a yönlendir
-  if (accessPresent && isAuthRoute) {
+  // Auth rotaları → login sonrası yönlendirme
+  if (isAuth && hasAccess) {
+    if (level === 0) {
+      url.pathname = "/onboarding/profile";
+    } else if (level === 1) {
+      url.pathname = "/onboarding/password";
+    } else {
+      url.pathname = "/dashboard";
+    }
+    return NextResponse.redirect(url);
+  }
+
+  // Onboarding Profile kuralları
+  if (isProfile) {
+    if (level === 0) return NextResponse.next(); // sadece LEVEL 0 erişebilir
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  // Onboarding Password kuralları
+  if (isPassword) {
+    if (level === 1) return NextResponse.next(); // sadece LEVEL 1 erişebilir
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
@@ -37,6 +80,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Middleware her request için çalışır, ancak statik dosyalar hariç
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
