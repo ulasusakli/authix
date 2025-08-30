@@ -1,13 +1,10 @@
-"use server";
-
 import { cookies } from "next/headers";
 
 const prod = process.env.NODE_ENV === "production";
-const secure = prod;
 
 export const cookieNames = {
-  access: "__Host-authix-at",
-  refresh: "__Host-authix-rt",
+  access: prod ? "__Host-authix-at" : "authix-at",
+  refresh: prod ? "__Host-authix-rt" : "authix-rt",
   csrf: "authix-csrf",
 };
 
@@ -21,14 +18,14 @@ export async function setAuthCookies(
   jar.set(cookieNames.access, accessToken, {
     httpOnly: true,
     sameSite: "lax",
-    secure,
+    secure: prod,
     path: "/",
     maxAge: accessTTL,
   });
   jar.set(cookieNames.refresh, refreshToken, {
     httpOnly: true,
     sameSite: "lax",
-    secure,
+    secure: prod,
     path: "/",
     maxAge: refreshTTL,
   });
@@ -36,8 +33,8 @@ export async function setAuthCookies(
 
 export async function clearAuthCookies() {
   const jar = await cookies();
-  jar.set(cookieNames.access, "", { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: 0 });
-  jar.set(cookieNames.refresh, "", { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: 0 });
+  jar.set(cookieNames.access, "", { httpOnly: true, sameSite: "lax", secure: prod, path: "/", maxAge: 0 });
+  jar.set(cookieNames.refresh, "", { httpOnly: true, sameSite: "lax", secure: prod, path: "/", maxAge: 0 });
 }
 
 export async function getRefreshToken() {

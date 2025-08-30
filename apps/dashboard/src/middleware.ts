@@ -1,22 +1,34 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { cookieNames } from "@/lib/cookies";
 
+// Authentication routes (public, login flow)
 const AUTH_ROUTES = ["/auth/email", "/auth/otp"];
-const PROTECTED = ["/dashboard", "/settings", "/onboarding"];
+
+// Protected routes (require access token)
+const PROTECTED_ROUTES = ["/dashboard", "/settings", "/onboarding"];
+
+function hasAccessCookie(req: NextRequest): boolean {
+  // Hem dev hem prod cookie isimlerini kontrol et
+  const candidates = [cookieNames.access, "authix-at", "__Host-authix-at"];
+  return candidates.some((name) => Boolean(req.cookies.get(name)?.value));
+}
 
 export function middleware(req: NextRequest) {
-  const access = req.cookies.get("__Host-authix-at")?.value;
+  const accessPresent = hasAccessCookie(req);
   const url = req.nextUrl.clone();
 
-  const isAuthRoute = AUTH_ROUTES.some(p => url.pathname.startsWith(p));
-  const isProtected = PROTECTED.some(p => url.pathname.startsWith(p));
+  const isAuthRoute = AUTH_ROUTES.some((route) => url.pathname.startsWith(route));
+  const isProtected = PROTECTED_ROUTES.some((route) => url.pathname.startsWith(route));
 
-  if (!access && isProtected) {
+  // Korumalı route ama access yok → login sayfasına yönlendir
+  if (!accessPresent && isProtected) {
     url.pathname = "/auth/email";
     return NextResponse.redirect(url);
   }
 
-  if (access && isAuthRoute) {
+  // Access varken tekrar /auth/... sayfalarına gitmeye çalışıyorsa → dashboard’a yönlendir
+  if (accessPresent && isAuthRoute) {
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
@@ -25,5 +37,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Middleware her request için çalışır, ancak statik dosyalar hariç
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
