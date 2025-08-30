@@ -3,6 +3,7 @@ import authController from "../controllers/auth.controller";
 import { authGuard } from "../middlewares/auth.middleware";
 import rateLimit from "express-rate-limit";
 
+
 const router = Router();
 
 // OTP talebi için basit rate limit (IP/e-posta spam koruması için yeterli)
@@ -25,5 +26,8 @@ router.get("/me", authGuard, authController.me);
 router.post("/set-profile", authGuard, authController.setProfile);
 router.post("/start-password-setup", authGuard, authController.startPasswordSetup);
 router.post("/complete-password-setup", authController.completePasswordSetup);
+
+
+router.post("/set-profile", authGuard, authController.setProfile);
 
 export default router;
