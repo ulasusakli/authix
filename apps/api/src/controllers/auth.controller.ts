@@ -76,8 +76,13 @@ const authController = {
     const userId = (req as any).user?.id as string;
     const { name, avatar } = req.body;
     if (!name || !avatar) return res.status(400).json({ error: "NAME_AVATAR_REQUIRED" });
-    const user = await upgradeProfile(userId, { name, avatar });
-    return res.json({ user });
+    try {
+      const user = await upgradeProfile(userId, { name, avatar });
+      return res.json({ user });
+    } catch (e) {
+      console.error("Set profile error:", e);
+      return res.status(500).json({ error: "PROFILE_UPDATE_FAILED" });
+    }
   },
 
   startPasswordSetup: async (req: Request, res: Response) => {

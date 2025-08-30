@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 const prod = process.env.NODE_ENV === "production";
+const secure = prod;
 
 export const cookieNames = {
   access: prod ? "__Host-authix-at" : "authix-at",
@@ -18,14 +19,14 @@ export async function setAuthCookies(
   jar.set(cookieNames.access, accessToken, {
     httpOnly: true,
     sameSite: "lax",
-    secure: prod,
+    secure,
     path: "/",
     maxAge: accessTTL,
   });
   jar.set(cookieNames.refresh, refreshToken, {
     httpOnly: true,
     sameSite: "lax",
-    secure: prod,
+    secure,
     path: "/",
     maxAge: refreshTTL,
   });
@@ -33,14 +34,26 @@ export async function setAuthCookies(
 
 export async function clearAuthCookies() {
   const jar = await cookies();
-  jar.set(cookieNames.access, "", { httpOnly: true, sameSite: "lax", secure: prod, path: "/", maxAge: 0 });
-  jar.set(cookieNames.refresh, "", { httpOnly: true, sameSite: "lax", secure: prod, path: "/", maxAge: 0 });
-}
-
-export async function getRefreshToken() {
-  return (await cookies()).get(cookieNames.refresh)?.value || "";
+  jar.set(cookieNames.access, "", { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: 0 });
+  jar.set(cookieNames.refresh, "", { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: 0 });
 }
 
 export async function getAccessToken() {
-  return (await cookies()).get(cookieNames.access)?.value || "";
+  const jar = await cookies();
+  return (
+    jar.get(cookieNames.access)?.value ||
+    jar.get("authix-at")?.value ||
+    jar.get("__Host-authix-at")?.value ||
+    ""
+  );
+}
+
+export async function getRefreshToken() {
+  const jar = await cookies();
+  return (
+    jar.get(cookieNames.refresh)?.value ||
+    jar.get("authix-rt")?.value ||
+    jar.get("__Host-authix-rt")?.value ||
+    ""
+  );
 }
