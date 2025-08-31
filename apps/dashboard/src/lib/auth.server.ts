@@ -2,11 +2,29 @@ import { cookies } from "next/headers";
 
 const ACCESS_COOKIES = ["__Host-authix-at", "authix-at"];
 
+export function isLikelyJwt(token: any): token is string {
+  return (
+    typeof token === "string" &&
+    /^[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+$/.test(token)
+  );
+}
+
 export async function getAccessTokenFromCookies(): Promise<string | null> {
-  const jar = await cookies();
+  const jar = await cookies(); // ✅ Promise olduğu için await
   for (const n of ACCESS_COOKIES) {
-    const v = jar.get(n)?.value;
-    if (v) return v;
+    const v = (jar as any).get(n)?.value; // TS’nin Promise/get çelişkisini çözmek için cast
+    if (v && v.trim() !== "") {
+      if (isLikelyJwt(v)) {
+        console.log("[auth.server] Using access token from cookie:", n);
+        return v;
+      } else {
+        console.warn(
+          "[auth.server] Ignoring invalid JWT in cookie:",
+          n,
+          String(v).slice(0, 12)
+        );
+      }
+    }
   }
   return null;
 }

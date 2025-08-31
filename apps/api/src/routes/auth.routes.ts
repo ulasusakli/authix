@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authController from "../controllers/auth.controller";
-import { authGuard } from "../middlewares/auth.middleware";
+import { authMiddleware} from "../middlewares/auth.middleware";
 import rateLimit from "express-rate-limit";
 
 
@@ -22,13 +22,13 @@ router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
 
 // Korunan yollar
-router.get("/me", authGuard, authController.me);
-router.post("/set-profile", authGuard, authController.setProfile);
-router.post("/start-password-setup", authGuard, authController.startPasswordSetup);
+router.get("/me", authMiddleware, authController.me);
+router.post("/set-profile", authMiddleware, authController.setProfile);
+router.post("/start-password-setup", authMiddleware, authController.startPasswordSetup);
 router.post("/complete-password-setup", authController.completePasswordSetup);
 
 
-router.post("/set-profile", authGuard, authController.setProfile);
-router.post("/set-password", authGuard, authController.setPassword);
+router.post("/set-profile", authMiddleware, authController.setProfile);
+router.post("/set-password", authMiddleware, authController.setPassword);
 
 export default router;
