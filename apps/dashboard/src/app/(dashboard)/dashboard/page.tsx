@@ -1,10 +1,13 @@
-export default function Dashboard() {
+import { StoreCard } from "@/widgets/StoreCard";
+import { OrdersCard } from "@/widgets/OrdersCard";
+import { ProfileCard } from "@/widgets/ProfileCard";
+
+export default function DashboardHome() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Coming soon.</p>
-      </div>
+    <div className="grid gap-6 md:grid-cols-3">
+      <StoreCard />
+      <OrdersCard />
+      <ProfileCard />
     </div>
   );
 }
