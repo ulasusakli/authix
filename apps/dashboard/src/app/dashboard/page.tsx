@@ -1,10 +1,9 @@
-export default function Dashboard() {
+export default function DashboardHome() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Coming soon.</p>
-      </div>
+    <div className="grid gap-6 md:grid-cols-3">
+      <div className="rounded-xl bg-white shadow p-6">Vitrinim (özet)</div>
+      <div className="rounded-xl bg-white shadow p-6">Siparişlerim (özet)</div>
+      <div className="rounded-xl bg-white shadow p-6">Profilim (özet)</div>
     </div>
   );
 }
