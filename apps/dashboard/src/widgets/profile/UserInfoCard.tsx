@@ -32,21 +32,48 @@ export function UserInfoCard() {
 
   async function handleSave() {
     setLoading(true);
-    const res = await fetch("/api/auth/update-profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, username, avatar }),
-    });
-    const data = await res.json();
-    setLoading(false);
+    try {
+      const changed: Record<string, any> = {};
+      if (name.trim() && name.trim() !== (user?.name || "")) changed.name = name.trim();
+      if (username.trim() && username.trim() !== (user?.username || "")) changed.username = username.trim();
+      if (avatar.trim() && avatar.trim() !== (user?.avatar || "")) changed.avatar = avatar.trim();
 
-    if (!res.ok) {
-      toast.error(data?.error || "Profil güncellenemedi");
-      return;
+      if (Object.keys(changed).length === 0) {
+        toast.message("Değişiklik yok");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(changed),
+      });
+
+      const ctype = res.headers.get("content-type") || "";
+      const data = ctype.includes("application/json") ? await res.json() : { error: await res.text() };
+
+      if (!res.ok) {
+        if (data?.error === "USERNAME_TAKEN") {
+          toast.error("Bu kullanıcı adı zaten alınmış.");
+        } else if (data?.error === "VALIDATION_ERROR") {
+          toast.error("Alanları kontrol edin.");
+        } else {
+          toast.error("Profil güncellenemedi.");
+        }
+        return;
+      }
+
+      toast.success("Profil güncellendi!");
+      setUser(data.user);
+      setName(data.user.name || "");
+      setUsername(data.user.username || "");
+      setAvatar(data.user.avatar || "");
+    } catch (e) {
+      toast.error("Beklenmeyen bir hata oluştu.");
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Profil güncellendi!");
-    setUser(data.user);
   }
 
   if (!user) return <p>Loading...</p>;
