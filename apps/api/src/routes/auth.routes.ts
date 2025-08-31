@@ -29,5 +29,6 @@ router.post("/complete-password-setup", authController.completePasswordSetup);
 
 
 router.post("/set-profile", authGuard, authController.setProfile);
+router.post("/set-password", authGuard, authController.setPassword);
 
 export default router;

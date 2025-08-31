@@ -8,7 +8,10 @@ import {
   upgradeProfile,
   startPasswordSetup,
   completePasswordSetup,
+  setPassword,
 } from "../services/auth.service";
+
+
 
 const authController = {
   requestOtp: async (req: Request, res: Response) => {
@@ -84,6 +87,23 @@ const authController = {
       return res.status(500).json({ error: "PROFILE_UPDATE_FAILED" });
     }
   },
+
+  setPassword: async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id as string;
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: "PASSWORD_TOO_SHORT" });
+    }
+    try {
+      const user = await setPassword(userId, password);
+      return res.json({ user });
+    } catch (e) {
+      console.error("Set password error:", e);
+      return res.status(500).json({ error: "PASSWORD_UPDATE_FAILED" });
+    }
+  },
+
+  
 
   startPasswordSetup: async (req: Request, res: Response) => {
     const userId = (req as any).user?.id as string;

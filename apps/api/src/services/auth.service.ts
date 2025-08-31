@@ -186,6 +186,15 @@ export async function completePasswordSetup(token: string, newPassword: string) 
   return { ok: true };
 }
 
+export async function setPassword(userId: string, password: string) {
+  const hash = await hashPassword(password);
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { password: hash, level: { set: 2 } },
+  });
+  return user;
+}
+
 function cryptoRandom() {
   return require("crypto").randomBytes(20).toString("hex");
 }

@@ -13,14 +13,13 @@ function getAccessToken(req: NextRequest) {
 
 function parseJwtLevel(token: string): number | null {
   try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const base = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padLen = (4 - (base.length % 4)) % 4;
-    const basePadded = base + "=".repeat(padLen);
+    const seg = token.split(".")[1];
+    if (!seg) return null;
+    const base = seg.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = "=".repeat((4 - (base.length % 4)) % 4);
     const json = typeof atob !== "undefined"
-      ? atob(basePadded)
-      : Buffer.from(basePadded, "base64").toString("utf-8");
+      ? atob(base + pad)
+      : Buffer.from(base + pad, "base64").toString("utf8");
     const obj = JSON.parse(json);
     return typeof obj?.level === "number" ? obj.level : null;
   } catch {
@@ -44,35 +43,32 @@ export function middleware(req: NextRequest) {
     path.startsWith("/settings") ||
     path.startsWith("/onboarding");
 
-  // Korunan rotalara access yoksa → /auth/email
+  // Access yoksa, korunan rotalara izin verme
   if (!hasAccess && isProtected) {
     url.pathname = "/auth/email";
     return NextResponse.redirect(url);
   }
 
-  // Auth rotaları → login sonrası yönlendirme
+  // Auth rotaları → login olmuş kullanıcıyı akışın doğru noktasına taşı
   if (isAuth && hasAccess) {
-    if (level === 0) {
-      url.pathname = "/onboarding/profile";
-    } else if (level === 1) {
-      url.pathname = "/onboarding/password";
-    } else {
-      url.pathname = "/dashboard";
-    }
-    return NextResponse.redirect(url);
+    if (level === 0) { url.pathname = "/onboarding/profile"; return NextResponse.redirect(url); }
+    if (level === 1) { url.pathname = "/onboarding/password"; return NextResponse.redirect(url); }
+    url.pathname = "/dashboard"; return NextResponse.redirect(url);
   }
 
-  // Onboarding Profile kuralları
+  // Senaryo kuralı:
+  // LEVEL 0 → sadece /onboarding/profile
   if (isProfile) {
-    if (level === 0) return NextResponse.next(); // sadece LEVEL 0 erişebilir
+    if (level === 0) return NextResponse.next();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Onboarding Password kuralları
+  // LEVEL 1 → sadece /onboarding/password
   if (isPassword) {
-    if (level === 1) return NextResponse.next(); // sadece LEVEL 1 erişebilir
-    url.pathname = "/dashboard";
+    if (level === 1) return NextResponse.next();
+    // LEVEL 0 profil'e, LEVEL 2+ dashboard'a
+    url.pathname = level === 0 ? "/onboarding/profile" : "/dashboard";
     return NextResponse.redirect(url);
   }
 
