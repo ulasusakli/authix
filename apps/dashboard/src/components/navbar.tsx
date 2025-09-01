@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,6 +18,12 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname();
+
+  const router = useRouter();
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/auth/email");
+  }
 
   return (
     <header className="w-full border-b bg-background">
@@ -53,7 +59,7 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings">Sistem Ayarları</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log("Logout")}>
+              <DropdownMenuItem onClick={handleLogout}>
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

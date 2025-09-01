@@ -1,7 +1,11 @@
 import { cookies } from "next/headers";
 
-const ACCESS_COOKIES = ["__Host-authix-at", "authix-at"];
+const ACCESS_COOKIE_KEYS = ["__Host-authix-at", "authix-at"];
+const REFRESH_COOKIE_KEYS = ["__Host-authix-rt", "authix-rt"];
 
+/**
+ * Basit JWT kontrolü
+ */
 export function isLikelyJwt(token: any): token is string {
   return (
     typeof token === "string" &&
@@ -9,26 +13,64 @@ export function isLikelyJwt(token: any): token is string {
   );
 }
 
+/**
+ * Cookie jar döner
+ */
+async function getCookieJar() {
+  return await cookies();
+}
+
+/**
+ * Access Token çek
+ */
 export async function getAccessTokenFromCookies(): Promise<string | null> {
-  const jar = await cookies(); // ✅ Promise olduğu için await
-  for (const n of ACCESS_COOKIES) {
-    const v = (jar as any).get(n)?.value; // TS’nin Promise/get çelişkisini çözmek için cast
+  const jar = await getCookieJar();
+  for (const key of ACCESS_COOKIE_KEYS) {
+    const v = jar.get(key)?.value;
     if (v && v.trim() !== "") {
       if (isLikelyJwt(v)) {
-        console.log("[auth.server] Using access token from cookie:", n);
+        console.log("[auth.server] Using access token from cookie:", key);
         return v;
       } else {
-        console.warn(
-          "[auth.server] Ignoring invalid JWT in cookie:",
-          n,
-          String(v).slice(0, 12)
-        );
+        console.warn("[auth.server] Ignoring invalid JWT in cookie:", key);
       }
     }
   }
   return null;
 }
 
+/**
+ * Refresh Token çek
+ */
+export async function getRefreshTokenFromCookies(): Promise<string | null> {
+  const jar = await getCookieJar();
+  for (const key of REFRESH_COOKIE_KEYS) {
+    const v = jar.get(key)?.value;
+    if (v && v.trim() !== "") {
+      if (isLikelyJwt(v)) {
+        console.log("[auth.server] Using refresh token from cookie:", key);
+        return v;
+      } else {
+        console.warn("[auth.server] Ignoring invalid JWT in cookie:", key);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Cookie’leri temizle
+ */
+export async function clearAuthCookies() {
+  const jar = await getCookieJar();
+  [...ACCESS_COOKIE_KEYS, ...REFRESH_COOKIE_KEYS].forEach((key) => {
+    jar.set(key, "", { path: "/", httpOnly: true, secure: true, maxAge: 0 });
+  });
+}
+
+/**
+ * JWT içinden Level decode et
+ */
 export function decodeLevelFromJwt(token: string): number | null {
   try {
     const seg = token.split(".")[1];
@@ -43,7 +85,13 @@ export function decodeLevelFromJwt(token: string): number | null {
   }
 }
 
-export async function getLevelFromCookies(): Promise<{ hasAccess: boolean; level: number | null }> {
+/**
+ * Cookie’den Level decode et
+ */
+export async function getLevelFromCookies(): Promise<{
+  hasAccess: boolean;
+  level: number | null;
+}> {
   const at = await getAccessTokenFromCookies();
   if (!at) return { hasAccess: false, level: null };
   return { hasAccess: true, level: decodeLevelFromJwt(at) };
