@@ -1,10 +1,11 @@
-import { UserInfoCard } from "@/widgets/profile/UserInfoCard";
+import {UserInfoCard} from "@/widgets/profile/UserInfoCard";
+import PasswordChangeCard from "@/widgets/profile/PasswordChangeCard";
 
 export default function ProfilePage() {
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold mb-6">Profilim</h1>
+    <div className="space-y-6">
       <UserInfoCard />
+      <PasswordChangeCard />
     </div>
   );
 }
