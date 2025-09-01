@@ -1,4 +1,3 @@
-// apps/api/src/middlewares/auth.middleware.ts
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt";
 
@@ -19,6 +18,7 @@ function readCookie(req: Request, name: string): string | null {
 }
 
 export interface AuthUser { id: string; level: number }
+
 declare global {
   namespace Express {
     interface Request { user?: AuthUser }
@@ -47,7 +47,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   try {
     const payload = verifyAccessToken(token);
     if (!payload?.sub) return res.status(401).json({ error: "INVALID_TOKEN" });
-    req.user = { id: String(payload.sub), level: (payload as any).level ?? 0 };
+    (req as any).user = { id: payload.sub as string, level: (payload as any).level ?? 0 };
     return next();
   } catch (err: any) {
     if (err?.name === "TokenExpiredError") {
