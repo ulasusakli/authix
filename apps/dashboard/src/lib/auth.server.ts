@@ -59,13 +59,28 @@ export async function getRefreshTokenFromCookies(): Promise<string | null> {
 }
 
 /**
- * Cookie’leri temizle
+ * Cookie’leri temizle (dev/prod uyumlu)
  */
 export async function clearAuthCookies() {
-  const jar = await getCookieJar();
-  [...ACCESS_COOKIE_KEYS, ...REFRESH_COOKIE_KEYS].forEach((key) => {
-    jar.set(key, "", { path: "/", httpOnly: true, secure: true, maxAge: 0 });
-  });
+  // Next.js Route Handler context'inde cookies() async kabul ediliyor
+  const jar = await cookies();
+
+  // Dev'de HTTP olduğundan secure=false; prod'da true
+  const secure = process.env.NODE_ENV === "production";
+
+  const common = {
+    path: "/",
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    secure,
+    maxAge: 0,
+    expires: new Date(0),
+  };
+
+  for (const key of [...ACCESS_COOKIE_KEYS, ...REFRESH_COOKIE_KEYS]) {
+    // Boş değer + 0 maxAge + geçmiş tarih ile sil
+    jar.set(key, "", common);
+  }
 }
 
 /**

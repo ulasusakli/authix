@@ -20,9 +20,18 @@ export function Navbar() {
   const pathname = usePathname();
 
   const router = useRouter();
+
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/auth/email");
+    try {
+      await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
+    } catch {
+      // ignore
+    }
+    // SSR tarafında guard doğru çalışsın diye:
+    router.replace("/auth/email");
+    router.refresh();
+    // En garantisi istersen:
+    // window.location.href = "/auth/email";
   }
 
   return (
