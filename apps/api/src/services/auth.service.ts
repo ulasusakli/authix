@@ -4,6 +4,7 @@ import { generateNumericCode, randomUsername } from "../utils/crypto";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt";
 import { hashPassword, comparePassword } from "../utils/hash";
 import { sendOtpEmail, sendPasswordResetEmail } from "./email.service";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -11,19 +12,19 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+// ---------------- OTP FLOW ----------------
+
 export async function requestOtp(emailRaw: string) {
   const email = normalizeEmail(emailRaw);
-
   const code = generateNumericCode(env.OTP_CODE_LENGTH);
   const expires = new Date(Date.now() + env.OTP_TTL_MINUTES * 60_000);
 
-  // (Opsiyonel) spam koruma: son 60 sn içinde talep edilmişse reddet
   const last = await prisma.otpToken.findFirst({
     where: { email },
     orderBy: { createdAt: "desc" },
   });
   if (last && Date.now() - last.createdAt.getTime() < 60_000) {
-    return { ok: true, throttled: true }; // sessiz throttling
+    return { ok: true, throttled: true };
   }
 
   await prisma.otpToken.create({
@@ -83,6 +84,8 @@ export async function verifyOtpAndLogin(params: {
   return { user, accessToken: access, refreshToken: refresh };
 }
 
+// ---------------- PASSWORD LOGIN ----------------
+
 export async function loginWithPassword(params: {
   emailRaw: string;
   password: string;
@@ -92,6 +95,7 @@ export async function loginWithPassword(params: {
   const email = normalizeEmail(params.emailRaw);
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.password) throw new Error("INVALID_CREDENTIALS");
+
   const match = await comparePassword(params.password, user.password);
   if (!match) throw new Error("INVALID_CREDENTIALS");
 
@@ -112,6 +116,8 @@ export async function loginWithPassword(params: {
   return { user, accessToken: access, refreshToken: refresh };
 }
 
+// ---------------- TOKEN REFRESH / LOGOUT ----------------
+
 export async function refreshTokens(refreshToken: string) {
   const session = await prisma.session.findUnique({ where: { refreshToken } });
   if (!session || session.expiresAt < new Date()) throw new Error("INVALID_REFRESH");
@@ -126,7 +132,6 @@ export async function refreshTokens(refreshToken: string) {
   const newRefresh = signRefreshToken({ sub: user.id, level: user.level });
   const refreshExp = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  // rotate
   await prisma.$transaction([
     prisma.session.delete({ where: { refreshToken } }),
     prisma.session.create({
@@ -146,6 +151,8 @@ export async function logout(refreshToken: string) {
   return { ok: true };
 }
 
+// ---------------- PROFILE / PASSWORD SETUP ----------------
+
 export async function upgradeProfile(userId: string, data: { name: string; avatar: string }) {
   const user = await prisma.user.update({
     where: { id: userId },
@@ -155,7 +162,7 @@ export async function upgradeProfile(userId: string, data: { name: string; avata
 }
 
 export async function startPasswordSetup(userId: string) {
-  const token = cryptoRandom();
+  const token = crypto.randomBytes(20).toString("hex");
   const expires = new Date(Date.now() + 60 * 60 * 1000);
   await prisma.passwordResetToken.create({
     data: { userId, token, expiresAt: expires },
@@ -195,6 +202,22 @@ export async function setPassword(userId: string, password: string) {
   return user;
 }
 
-function cryptoRandom() {
-  return require("crypto").randomBytes(20).toString("hex");
+export async function changePassword(userId: string, oldPassword: string, newPassword: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.password) {
+    return { error: "INVALID_OLD_PASSWORD" };
+  }
+
+  const valid = await comparePassword(oldPassword, user.password);
+  if (!valid) {
+    return { error: "INVALID_OLD_PASSWORD" };
+  }
+
+  const hash = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hash },
+  });
+
+  return { success: true };
 }

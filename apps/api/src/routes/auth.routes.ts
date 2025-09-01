@@ -31,4 +31,7 @@ router.post("/complete-password-setup", authController.completePasswordSetup);
 router.post("/set-profile", authMiddleware, authController.setProfile);
 router.post("/set-password", authMiddleware, authController.setPassword);
 
+router.patch("/change-password", authMiddleware, authController.changePassword);
+
+
 export default router;
