@@ -22,11 +22,11 @@ const env = {
   OTP_TTL_MINUTES: Number(process.env.OTP_TTL_MINUTES || 5),
   PASSWORD_RESET_TTL_MINUTES: Number(process.env.PASSWORD_RESET_TTL_MINUTES || 60),
 
-  EMAIL_FROM: process.env.EMAIL_FROM || "Authix <no-reply@authix.dev>",
   SMTP_HOST: process.env.SMTP_HOST || "",
   SMTP_PORT: Number(process.env.SMTP_PORT || 587),
   SMTP_USER: process.env.SMTP_USER || "",
   SMTP_PASS: process.env.SMTP_PASS || "",
+  SMTP_FROM: process.env.SMTP_FROM || "Authix <no-reply@authix.dev>",
 };
 
 export default env;
