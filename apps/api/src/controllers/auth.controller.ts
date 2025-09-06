@@ -43,22 +43,6 @@ const authController = {
     }
   },
 
-  // ---------------- PASSWORD LOGIN ----------------
-  async loginPassword(req: Request, res: Response) {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "EMAIL_PASSWORD_REQUIRED" });
-    try {
-      const r = await loginWithPassword({
-        emailRaw: email,
-        password,
-        userAgent: req.headers["user-agent"],
-        ip: req.ip,
-      });
-      return res.json(r);
-    } catch {
-      return res.status(400).json({ error: "INVALID_CREDENTIALS" });
-    }
-  },
 
   // ---------------- TOKEN REFRESH / LOGOUT ----------------
   async refresh(req: Request, res: Response) {
@@ -97,6 +81,8 @@ const authController = {
     }
   },
 
+    // ---------------- PASSWORD MANAGEMENT ----------------
+
   async setPassword(req: Request, res: Response) {
     const userId = (req as any).user?.id as string;
     const { password } = req.body;
@@ -129,25 +115,6 @@ const authController = {
     } catch (e) {
       console.error("[changePassword]", e);
       return res.status(500).json({ error: "FAILED_TO_CHANGE_PASSWORD" });
-    }
-  },
-
-  // ---------------- PASSWORD SETUP ----------------
-  async startPasswordSetup(req: Request, res: Response) {
-    const userId = (req as any).user?.id as string;
-    await startPasswordSetup(userId);
-    return res.json({ ok: true });
-  },
-
-  async completePasswordSetup(req: Request, res: Response) {
-    const { token, newPassword } = req.body;
-    if (!token || !newPassword) return res.status(400).json({ error: "TOKEN_PASSWORD_REQUIRED" });
-    try {
-      await completePasswordSetup(token, newPassword);
-      return res.json({ ok: true });
-    } catch (e) {
-      console.error("[completePasswordSetup]", e);
-      return res.status(400).json({ error: "INVALID_TOKEN" });
     }
   },
 
