@@ -17,15 +17,13 @@ const otpLimiter = rateLimit({
 router.post("/request-otp", otpLimiter, authController.requestOtp);
 router.post("/verify-otp", authController.verifyOtp);
 
-router.post("/login", authController.loginPassword);
 router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
 
 // Korunan yollar
 router.get("/me", authMiddleware, authController.me);
 router.post("/set-profile", authMiddleware, authController.setProfile);
-router.post("/start-password-setup", authMiddleware, authController.startPasswordSetup);
-router.post("/complete-password-setup", authController.completePasswordSetup);
+
 
 // Set Profile and Password
 router.post("/set-profile", authMiddleware, authController.setProfile);
