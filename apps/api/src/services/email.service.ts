@@ -74,5 +74,9 @@ export async function sendOtpEmail(email: string, code: string) {
  * Password Reset Email
  */
 export async function sendPasswordResetEmail(email: string, token: string) {
-  return sendMail(email, "Şifre Sıfırlama", "passwordReset", { token });
+  const resetUrl = `http://localhost:3000/auth/reset-password?token=${token}`;
+  return sendMail(email, "Şifre Sıfırlama", "passwordReset", {
+    resetUrl,
+    year: new Date().getFullYear(),
+  });
 }

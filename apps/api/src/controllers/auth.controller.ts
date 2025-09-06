@@ -9,8 +9,14 @@ import {
   startPasswordSetup,
   completePasswordSetup,
   setPassword,
-  changePassword,
+  changePassword
 } from "../services/auth.service";
+import { notifyEmail } from "../services/notification.service";
+import { v4 as uuid } from "uuid";
+import prisma from "../prisma";
+import bcrypt from "bcrypt";
+
+
 
 const authController = {
   // ---------------- OTP ----------------
@@ -144,6 +150,65 @@ const authController = {
       return res.status(400).json({ error: "INVALID_TOKEN" });
     }
   },
+
+
+  async requestPasswordReset(req: Request, res: Response) {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "EMAIL_REQUIRED" });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.id) {
+      // güvenlik için 200 dön ama işlem yapma
+      return res.json({ success: true });
+    }
+
+    const token = uuid();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 saat geçerli
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt,
+      },
+    });
+
+    await notifyEmail("passwordReset", email, { token });
+
+    return res.json({ success: true });
+  },
+
+  async resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+  if (!token || !password)
+    return res.status(400).json({ error: "TOKEN_PASSWORD_REQUIRED" });
+
+  const prt = await prisma.passwordResetToken.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+
+  if (!prt || prt.used || prt.expiresAt < new Date()) {
+    return res.status(400).json({ error: "INVALID_OR_EXPIRED_TOKEN" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await prisma.user.update({
+    where: { id: prt.userId },
+    data: {
+      password: hashedPassword,
+    },
+  });
+
+  await prisma.passwordResetToken.update({
+    where: { id: prt.id },
+    data: { used: true },
+  });
+
+  return res.json({ success: true });
+}
+
 };
 
 export default authController;

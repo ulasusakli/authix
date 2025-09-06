@@ -27,11 +27,17 @@ router.post("/set-profile", authMiddleware, authController.setProfile);
 router.post("/start-password-setup", authMiddleware, authController.startPasswordSetup);
 router.post("/complete-password-setup", authController.completePasswordSetup);
 
-
+// Set Profile and Password
 router.post("/set-profile", authMiddleware, authController.setProfile);
 router.post("/set-password", authMiddleware, authController.setPassword);
 
+// Password change
 router.patch("/change-password", authMiddleware, authController.changePassword);
+
+
+// Password reset
+router.post("/request-password-reset", authController.requestPasswordReset);
+router.post("/reset-password", authController.resetPassword);
 
 
 export default router;
